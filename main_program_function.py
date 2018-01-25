@@ -15,8 +15,6 @@ from condition_of_cards import*
 from write_csv import*
 
 
-
-
 def get_data(prefix, cardname, sets, language):
 
     key = '{} {} {} {}'.format(prefix, cardname, sets, language)
@@ -62,7 +60,7 @@ def main():
     prefix = 'mtg'
     cardname = 'Orcish Bloodpainter'
     edition = 'Coldsnap'
-    language = 'english'
+    language = ''
 
     basic_details_offeredCards = {'Prefix':prefix, 'Cardname':cardname, 'Edition':edition}
 
@@ -71,16 +69,17 @@ def main():
     data_condition = get_condition_offered_cards(data_desc)
 
     data_foil = writing_foil (data_desc)
+    #print (data_foil)
 
-    for item in data_foil:
-        if item == 'No':
-            data_analysis = analyze(data_desc)
-            write_csv_on_condition('cardsoffered_xxx.csv', data_desc, basic_details_offeredCards, data_analysis, item)
-        else:
-            item = 'Yes'
-            data_analysis_foil = foil_price_and_analysis (data_desc)
-            write_csv_on_condition('cardsoffered_xxx.csv', data_desc, basic_details_offeredCards, data_analysis_foil, item)
+    data_analysis = analyze(data_desc)
+    data_analysis_foil = foil_price_and_analysis (data_desc)
 
+    overall_offeredCards = ('cardsoffered_xxx.csv', data_desc, basic_details_offeredCards, data_analysis)
+    #print (overall_offeredCards)
+    overall_offeredCardsfoil = ('cardsoffered_xxx.csv', data_desc, basic_details_offeredCards, data_analysis_foil)
+    overall_write_2_csv (data_foil, overall_offeredCards, overall_offeredCardsfoil)
+
+    
 
 if __name__ == '__main__':
     main()
