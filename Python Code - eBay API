@@ -1,0 +1,98 @@
+import ebaysdk,json
+import statistics
+import re
+from ebaysdk.finding import Connection as finding
+import csv
+import os.path
+import random
+import pandas as pd
+import numpy as np
+from abhi import *
+from pandas import DataFrame
+from foil_test import*
+from amount_of_cards import*
+from condition_of_cards import*
+from write_csv import*
+
+def get_data(prefix, cardname, sets, language):
+
+    key = '{} {} {} {}'.format(prefix, cardname, sets, language)
+    cardname_for_fun_input = '{}'.format(cardname)
+    edition_for_fun_input = '{}'.format(sets)
+
+    api = finding(siteid='EBAY-US', appid='PeerRich-Snapcard-PRD-38ad16031-09f66a66', config_file=None)
+    #print (key)
+
+    options = {'keywords':key,
+               'itemFilter': [{'name': 'Condition', 'value': 'Used'},
+                              {'name': 'MinPrice', 'value': '0', 'paramName': 'Currency', 'paramValue': 'USD'},
+                              {'name': 'MaxPrice', 'value': '25000', 'paramName': 'Currency', 'paramValue': 'USD'} ],
+
+                'paginationInput': {'entriesPerPage': '25','pageNumber': '1'},
+                'sortOrder': 'CurrentPriceHighest'
+               }
+
+    api.execute('findItemsByKeywords',options)
+
+    dictstr = api.response.dict()  # creating a dictionary and storing in dictstr as keys and values
+
+    data = []
+
+    res = dictstr['searchResult']
+
+    if res['_count'] == '0':
+        return
+
+    for item in dictstr['searchResult']['item']:
+
+        d = {}
+        d['itemID'] = item['itemId']
+        d['title'] = item['title']
+        d['categoryId'] = item['primaryCategory']['categoryId']
+        d['offered_price'] = float(item['sellingStatus']['currentPrice']['value'])
+        d['data_amt_cards'] = float( amount_of_cards(item['title']))
+        d['avg_offered_card_price'] = d['offered_price'] /d['data_amt_cards']
+        d['condition'] = get_condition(item['title'])
+        d['foil'] = foil(item['title'])
+
+        data.append(d)
+    return data
+
+def main():
+
+    df = pd.read_csv('sample_cards.csv')
+    all_prefix = ['mtg', 'magic', 'mtg card', 'magic card']
+
+    for index, row in df.iterrows():
+
+        for item in all_prefix:
+            prefix = item
+            cardname = row['englishName']
+            edition = row['edition']
+            language = 'english'
+            filepath = '/home/abhinandan/Desktop/abhi-python/data/offeredCards/ENGLISH/'+prefix+'/' # c1
+
+            basic_details_offeredCards = {'Prefix':prefix, 'Cardname':cardname, 'Edition':edition}
+
+            data_desc = get_data(prefix, cardname, edition, language)
+
+            if(data_desc == None):
+
+                continue ## when the data_desc is none, then the continue statements rejects all the down statements and goes on the top pf the code
+            data_condition = get_condition_offered_cards(data_desc)
+            #print (data_condition)
+            data_foil = writing_foil (data_desc)
+            #print (data_foil)
+            for item in data_foil:
+                if item == 'No':
+                    data_analysis = analyze(data_desc)
+                    overall_offeredCards = (filepath, data_desc, basic_details_offeredCards, data_analysis) #c2
+                    overall_write_2_csv (item, overall_offeredCards, None)
+                else:
+                    item = 'Yes'
+                    data_analysis_foil = foil_price_and_analysis (data_desc)
+                    overall_offeredCardsfoil = (filepath, data_desc, basic_details_offeredCards, data_analysis_foil) #c3
+                    overall_write_2_csv (item, None, overall_offeredCardsfoil)
+
+if __name__ == '__main__':
+    main()
